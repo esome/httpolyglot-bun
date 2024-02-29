@@ -11,9 +11,19 @@ A module for serving HTTP, HTTPS and ~~HTTP/2~~ connections, all over the same p
 Take a look at the orignal package [Readme.md](https://github.com/httptoolkit/httpolyglot)
 
 ## Install
-============
+```json package.json
 
-    npm install @httptoolkit/httpolyglot
+    "dependencies": {
+        "@httptoolkit/httpolyglot-bun": "git@github.com:esome/httpolyglot-bun.git"
+    }
+```
+
+```json tsconfig.json
+  "baseUrl": "./",
+    "paths": {
+      "@httptoolkit/httpolyglot": ["node_modules/@httptoolkit/httpolyglot-bun/src/index"]
+    },       
+```
 
 
 ## Why this package?
