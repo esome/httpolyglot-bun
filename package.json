@@ -1,8 +1,8 @@
 {
   "name": "@httptoolkit/httpolyglot",
   "version": "2.2.1",
-  "author": "Tim Perry <pimterry@gmail.com>",
-  "description": "Serve http and https connections over the same port with node.js",
+  "author": "Patrik Simms <patriksimms@outlook.de>",
+  "description": "Serve http and https connections over the same port with bun.sh",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [

@@ -2,7 +2,6 @@ import * as net from 'net';
 import * as tls from 'tls';
 import * as http from 'http';
 import * as https from 'https';
-import * as http2 from 'http2';
 
 import { EventEmitter } from 'events';
 
@@ -20,17 +19,12 @@ declare module 'net' {
 function onError(err: any) {}
 
 const TLS_HANDSHAKE_BYTE = 0x16; // SSLv3+ or TLS handshake
-const HTTP2_PREFACE = 'PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n';
-const HTTP2_PREFACE_BUFFER = Buffer.from(HTTP2_PREFACE);
 
 const NODE_MAJOR_VERSION = parseInt(process.version.slice(1).split('.')[0], 10);
-
-type Http2Listener = (request: http2.Http2ServerRequest, response: http2.Http2ServerResponse) => void;
 
 export class Server extends net.Server {
 
   private _httpServer: http.Server;
-  private _http2Server: http2.Http2Server;
   private _tlsServer: EventEmitter;
 
   /**
@@ -138,13 +132,7 @@ export class Server extends net.Server {
         socket.allowHalfOpen = false;
         this._tlsServer.emit('connection', socket);
       } else {
-        if (firstByte === HTTP2_PREFACE_BUFFER[0]) {
-          // The connection _might_ be HTTP/2. To confirm, we need to keep
-          // reading until we get the whole stream:
-          this.http2Listener(socket);
-        } else {
-          this._httpServer.emit('connection', socket);
-        }
+        this._httpServer.emit('connection', socket);
       }
     }
   }
@@ -156,55 +144,7 @@ export class Server extends net.Server {
       tlsSocket.alpnProtocol === 'http 1.1' // Broken ALPN client (e.g. https-proxy-agent)
     ) {
       this._httpServer.emit('connection', tlsSocket);
-    } else {
-      this._http2Server.emit('connection', tlsSocket);
     }
-  }
-
-  private http2Listener(socket: net.Socket, pastData?: Buffer) {
-    const h1Server = this._httpServer;
-    const h2Server = this._http2Server;
-
-    const newData: Buffer = socket.read() || Buffer.from([]);
-    const data = pastData ? Buffer.concat([pastData, newData]) : newData;
-
-    if (data.length >= HTTP2_PREFACE_BUFFER.length) {
-      socket.unshift(data);
-      if (data.slice(0, HTTP2_PREFACE_BUFFER.length).equals(HTTP2_PREFACE_BUFFER)) {
-        // We have a full match for the preface - it's definitely HTTP/2.
-
-        // For HTTP/2 we hit issues when passing non-socket streams (like H2 streams for proxying H2-over-H2).
-        if (NODE_MAJOR_VERSION <= 12) {
-          // For Node 12 and older, we need a (later deprecated) stream wrapper:
-          const StreamWrapper = require('_stream_wrap');
-          socket = new StreamWrapper(socket);
-        } else {
-          // For newer node, we can fix this with a quick patch here:
-          const socketWithInternals = socket as { _handle?: { isStreamBase?: boolean } };
-          if (socketWithInternals._handle) {
-            socketWithInternals._handle.isStreamBase = false;
-          }
-        }
-
-        h2Server.emit('connection', socket);
-        return;
-      } else {
-        h1Server.emit('connection', socket);
-        return;
-      }
-    } else if (!data.equals(HTTP2_PREFACE_BUFFER.slice(0, data.length))) {
-      socket.unshift(data);
-      // Haven't finished the preface length, but something doesn't match already
-      h1Server.emit('connection', socket);
-      return;
-    }
-
-    // Not enough data to know either way - try again, waiting for more:
-    socket.removeListener('error', onError);
-    socket.on('error', onError);
-    socket.once('readable', () => {
-      this.http2Listener.call(this, socket, data);
-    });
   }
 }
 
