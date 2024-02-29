@@ -11,13 +11,15 @@ A module for serving HTTP, HTTPS and ~~HTTP/2~~ connections, all over the same p
 Take a look at the orignal package [Readme.md](https://github.com/httptoolkit/httpolyglot)
 
 ## Install
-```json package.json
+### package.json
+```json 
 
     "dependencies": {
         "@httptoolkit/httpolyglot-bun": "git@github.com:esome/httpolyglot-bun.git"
     }
 ```
 
+### tsconfig.json
 ```json tsconfig.json
   "baseUrl": "./",
     "paths": {
