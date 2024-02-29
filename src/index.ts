@@ -82,7 +82,6 @@ export class Server extends net.Server {
 
     // Create subservers for each supported protocol:
     this._httpServer = new http.Server(boundListener);
-    this._http2Server = http2.createServer({}, boundListener as any as Http2Listener);
 
     if (tlsServer) {
       // If we've been given a preconfigured TLS server, we use that directly, and
@@ -99,7 +98,7 @@ export class Server extends net.Server {
       this._tlsServer.on('connection', (socket) => socket.destroy());
     }
 
-    const subServers = [this._httpServer, this._http2Server, this._tlsServer];
+    const subServers = [this._httpServer, this._tlsServer];
 
     // Proxy all event listeners setup onto the subservers, so any
     // subscriptions on this server are fed from all the subservers
